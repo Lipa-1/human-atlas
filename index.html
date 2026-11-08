@@ -1,3 +1,59 @@
-<!doctype html><html lang="en" ><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/><meta name="theme-color" content="#f3f4f4"/><meta name="description" content="交互式人体解剖图谱：探索具名解剖结构、逐层展示器官系统，并在 3D 中查看单个部件。"/><title>人体图谱 · Human Atlas</title><link rel="icon" href="/human-atlas/favicon.svg"/>  <script type="module" crossorigin src="/human-atlas/assets/index-wjn7Lic8.js"></script>
+<!doctype html><html lang="en" ><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/><meta name="theme-color" content="#f3f4f4"/><meta name="description" content="交互式人体解剖图谱：探索具名解剖结构、逐层展示器官系统，并在 3D 中查看单个部件。"/><title>人体图谱 · Human Atlas</title><link rel="icon" href="/human-atlas/favicon.svg"/>  <script type="module" crossorigin src="/human-atlas/assets/index-P4nL2vQx.js"></script>
+  <script>
+/* 交互调整：左键/单指 = 上下平移　右键拖拽 = 旋转　双指或滚轮 = 缩放　点击 = 查看结构 */
+(function () {
+  'use strict';
+  function boot() {
+    var A = window.__atlasCtl;
+    if (!A || !A.c || !A.cam) { setTimeout(boot, 150); return; }
+    var ctl = A.c, cam = A.cam, el = ctl.domElement;
+    if (!el || el.__panBound) return;
+    el.__panBound = true;
+
+    var pid = null, y0 = 0, t0 = null, p0 = null;
+
+    /* 屏幕 1px 对应的世界长度 */
+    function worldPerPx() {
+      var h = el.clientHeight || 1;
+      var dist = cam.position.distanceTo(ctl.target) || 1;
+      return (2 * Math.tan((cam.fov || 34) * Math.PI / 360) * dist) / h;
+    }
+    /* 相机自身的上方向（矩阵第 2 列），俯仰时仍沿屏幕竖直方向平移 */
+    function camUp() {
+      var m = cam.matrix.elements, x = m[4], y = m[5], z = m[6];
+      var len = Math.hypot(x, y, z) || 1;
+      return { x: x / len, y: y / len, z: z / len };
+    }
+
+    window.addEventListener('pointerdown', function (e) {
+      if (e.target !== el) return;
+      if (pid !== null) { pid = null; t0 = null; return; }        /* 第二根手指交给捏合缩放 */
+      if (e.pointerType === 'mouse' ? e.button !== 0 : !e.isPrimary) return;  /* 右键留给旋转 */
+      pid = e.pointerId; y0 = e.clientY;
+      t0 = ctl.target.clone(); p0 = cam.position.clone();
+    }, true);
+
+    window.addEventListener('pointermove', function (e) {
+      if (e.pointerId !== pid || !t0) return;
+      var dy = e.clientY - y0;
+      if (!dy) return;
+      var d = dy * worldPerPx(), u = camUp();
+      ctl.target.set(t0.x + u.x * d, t0.y + u.y * d, t0.z + u.z * d);
+      cam.position.set(p0.x + u.x * d, p0.y + u.y * d, p0.z + u.z * d);
+      ctl.update();
+    }, true);
+
+    function end(e) {
+      if (pid === null || (e && e.pointerId !== pid)) return;
+      pid = null; t0 = null; p0 = null;
+    }
+    window.addEventListener('pointerup', end, true);
+    window.addEventListener('pointercancel', end, true);
+    window.addEventListener('blur', function () { end(); });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
+})();
+</script>
   <link rel="stylesheet" crossorigin href="/human-atlas/assets/index-A30yAhSQ.css">
 </head><body><div id="root"></div></body></html>
